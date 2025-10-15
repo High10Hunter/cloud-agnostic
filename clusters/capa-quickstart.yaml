@@ -1,0 +1,89 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  labels:
+    cni: calico
+    ccm: external
+    csi: external
+  name: h10h-aws-cluster
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+        - 192.168.0.0/16
+  topology:
+    classRef:
+      name: aws-quick-start
+    controlPlane:
+      replicas: 1
+    variables:
+      - name: region
+        value: us-east-1
+      - name: vpc
+        value:
+          cidrBlock: "192.168.0.0/16"
+          availabilityZoneUsageLimit: 1
+      - name: subnets
+        value:
+          - id: "subnet-public-h10h"
+            cidrBlock: "192.168.0.0/20"
+            availabilityZone: "us-east-1a"
+            isPublic: true
+          - id: "subnet-private-h10h"
+            cidrBlock: "192.168.16.0/20"
+            availabilityZone: "us-east-1a"
+            isPublic: false
+      # Remember to create key pair first
+      - name: sshKeyName
+        value: capa-rsa-key-pair
+      - name: controlPlaneMachineType
+        value: t3.medium
+      - name: workerMachineType
+        value: t3.medium
+      - name: amiID
+        value: ami-06f8fe92d4b567082 # AMI for ubuntu 22.04 - k8s v1.32
+    version: v1.32.0
+    workers:
+      machineDeployments:
+        - class: default-worker
+          name: md-0
+          replicas: 1
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta2
+kind: ClusterResourceSet
+metadata:
+  name: crs-cni
+spec:
+  clusterSelector:
+    matchLabels:
+      cni: calico
+  resources:
+    - kind: ConfigMap
+      name: cni-calico
+  strategy: ApplyOnce
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta2
+kind: ClusterResourceSet
+metadata:
+  name: crs-ccm
+spec:
+  clusterSelector:
+    matchLabels:
+      ccm: external
+  resources:
+    - kind: ConfigMap
+      name: aws-ccm-addon
+  strategy: ApplyOnce
+---
+apiVersion: addons.cluster.x-k8s.io/v1beta2
+kind: ClusterResourceSet
+metadata:
+  name: crs-csi
+spec:
+  clusterSelector:
+    matchLabels:
+      csi: external
+  resources:
+    - kind: ConfigMap
+      name: aws-ebs-csi-driver-addon
+  strategy: ApplyOnce

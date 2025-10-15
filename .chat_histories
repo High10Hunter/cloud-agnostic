@@ -1,0 +1,6 @@
+/agent solution_architect
+---ENTRY---
+I'm planning to provision a multicluster environment using kubernetes cluster-api (CAPI). I want to make it cloud agnostic without encountering vendor lock-in.The management and workload clusters can be deployed on any cloud providers (AWS, Azure, GCP) or on-premise infrastructure. 
+Give me detailed plan and instructions that align with best practises that meet above requirements. Explain the reason and consider the tradeoff of each proposed approach 
+---ENTRY---
+Yes, proceed with steps for solution architect agent
