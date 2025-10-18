@@ -377,5 +377,7 @@ Now that you've successfully created and validated an AWS workload cluster using
 
 When you're done, don't forget to clean up the resources to avoid unnecessary costs:
 ```bash
+kubie ctx kind-capi-bootstrap
 kubectl delete cluster h10h-aws-cluster
+kind delete cluster --name capi-bootstrap
 ```
