@@ -51,6 +51,12 @@ NAME                           STATUS   ROLES           AGE    VERSION
 capi-bootstrap-control-plane   Ready    control-plane   111s   v1.34.0
 ```
 
+If the infrastructure provider components are not yet installed, you can manually re-authenticate with the KinD management cluster then re-run the `init-capa-bootstrap-cluster.sh` script:
+```bash
+kubie ctx kind-capi-bootstrap
+./scripts/init-capa-bootstrap-cluster.sh
+```
+
 ### Provision ClusterClass for AWS infrastructure
 We need to wait for the `capa-controller-manager` to be fully initialized and running before continuing with the ClusterClass provisioning.
 ```bash
@@ -109,14 +115,14 @@ In my sample `capa-quickstart.yaml` file is using the ssh key named `capa-rsa-ke
 Create an AWS workload cluster using the previously created ClusterClass:
 ```bash
 # 1) Apply the configmaps first
-kubectl apply -f clusters/configmaps
+kubectl apply -f clusters/aws/configmaps
 ## Expected output:
 # configmap/aws-ccm-addon created
 # configmap/cni-calico created
 # configmap/aws-ebs-csi-driver-addon created
 
 # 2) Apply the workload cluster manifest
-kubectl apply -f clusters/capa-quickstart.yaml
+kubectl apply -f clusters/aws/capa-quickstart.yaml
 ## Expected output:
 # cluster.cluster.x-k8s.io/h10h-aws-cluster created
 # clusterresourceset.addons.cluster.x-k8s.io/crs-cni created
@@ -178,4 +184,198 @@ Cluster/h10h-aws-cluster                                     2/2       2        
   └─MachineDeployment/h10h-aws-cluster-md-0-t5x84            1/1       1          1      1           Available: True  Available         95s
     └─Machine/h10h-aws-cluster-md-0-t5x84-wgdlk-h4jhr        1         1          1      1           Ready: True      Ready             96s
 
+```
+
+Connect to the AWS workload cluster:
+```bash
+clusterctl get kubeconfig h10h-aws-cluster > ~/.kube/h10h-aws-cluster.kubeconfig
+kubie ctx h10h-aws-cluster-admin@h10h-aws-cluster 
+kubectl get no
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl get no
+NAME                             STATUS   ROLES           AGE   VERSION
+ip-192-168-19-220.ec2.internal   Ready    <none>          10m   v1.32.0
+ip-192-168-31-133.ec2.internal   Ready    control-plane   12m   v1.32.0
+```
+
+## Validate AWS cluster addons (CNI, CCM, CSI)
+Connected to the AWS workload cluster, check the addons pods:
+### 1) AWS Cloud Controller Manager (aws-ccm)
+Things to verify:
+- CCM pods are healthy
+- Nodes have .spec.providerID set (aws:///…)
+- A Service type=LoadBalancer gets an AWS NLB hostname and is reachable
+
+```bash
+# Controller daemonset
+kubectl -n kube-system get ds | egrep -i 'aws|cloud'
+kubectl get nodes -o custom-columns=NAME:.metadata.name,PROVIDERID:.spec.providerID,TAINTS:.spec.taints
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl -n kube-system get ds | egrep -i 'aws|cloud'
+kubectl get nodes -o custom-columns=NAME:.metadata.name,PROVIDERID:.spec.providerID,TAINTS:.spec.taints
+
+aws-cloud-controller-manager   1         1         1       1            1           node-role.kubernetes.io/control-plane=   32m
+NAME                             PROVIDERID                              TAINTS
+ip-192-168-28-111.ec2.internal   aws:///us-east-1a/i-089fc8dfda9891084   [map[effect:NoSchedule key:node-role.kubernetes.io/control-plane]]
+ip-192-168-30-212.ec2.internal   aws:///us-east-1a/i-0606ce12fb0353bc6   <none>
+```
+
+The `PROVIDERID` field indicates that the nodes are running on AWS infrastructure.
+Create resources to test the CCM functionality:
+```bash
+kubectl apply -f clusters/aws/tests/aws-ccm-validate.yaml 
+# Wait until EXTERNAL-IP/hostname is allocated
+kubectl -n ccm-check get svc web-lb -w
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl apply -f clusters/aws/tests/aws-ccm-validate.yaml
+namespace/ccm-check created
+deployment.apps/web created
+service/web-lb created
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl -n ccm-check get svc web-lb -w
+
+NAME     TYPE           CLUSTER-IP     EXTERNAL-IP                                                                     PORT(S)        AGE
+web-lb   LoadBalancer   10.98.21.233   ab83894a2815c4c798e64f0554e21e12-8b0dffc33f8e775b.elb.us-east-1.amazonaws.com   80:30773/TCP   4m9s
+```
+If the `EXTERNAL-IP` shows an AWS NLB DNS name like `*.elb.amazonaws.com` then it's good 👍
+
+Validate by accessing the service:
+```bash
+# Resolve & curl (repeat a couple of times to see NLB health)
+LB=$(kubectl -n ccm-check get svc web-lb -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+getent hosts "$LB" || nslookup "$LB"
+curl -I --max-time 5 "http://$LB/"
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ LB=$(kubectl -n ccm-check get svc web-lb -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ getent hosts "$LB" || nslookup "$LB"
+Server:         192.168.1.1
+Address:        192.168.1.1#53
+
+Non-authoritative answer:
+Name:   ab83894a2815c4c798e64f0554e21e12-8b0dffc33f8e775b.elb.us-east-1.amazonaws.com
+Address: 35.171.98.45
+
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ curl -I --max-time 5 "http://$LB/"
+HTTP/1.1 200 OK
+Server: nginx/1.25.5
+Date: Sat, 18 Oct 2025 11:18:44 GMT
+Content-Type: text/html
+Content-Length: 615
+Last-Modified: Tue, 16 Apr 2024 14:29:59 GMT
+Connection: keep-alive
+ETag: "661e8b67-267"
+Accept-Ranges: bytes
+```
+
+If you get a `HTTP/1.1 200 OK.` response from the curl command then the CCM is working properly 🛜. Or you can access the service from your browser using the `EXTERNAL-IP` DNS name to verify.
+
+### 2) AWS EBS CSI Driver (ebs-csi)
+Things to verify:
+- Controller & node components are healthy
+- CSIDriver ebs.csi.aws.com exists
+- Dynamic provisioning works (create StorageClass + PVC + Pod, write data, delete pod, re-attach, data persists)
+
+```bash
+# Controller & node daemonset
+kubectl -n kube-system get deploy,ds | egrep -i 'ebs|csi' || true
+kubectl get csidriver
+
+# Controller logs (adjust pod name if different)
+kubectl -n kube-system get pods -l app=ebs-csi-controller
+CSI_CTLR=$(kubectl -n kube-system get pods -l app=ebs-csi-controller -o jsonpath='{.items[0].metadata.name}')
+kubectl -n kube-system logs "$CSI_CTLR" --tail=200
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl -n kube-system get deploy,ds | egrep -i 'ebs|csi' || true
+deployment.apps/ebs-csi-controller        2/2     2            2           58m
+daemonset.apps/ebs-csi-node                   2         2         2       2            2           kubernetes.io/os=linux                   58m
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl get csidriver
+NAME              ATTACHREQUIRED   PODINFOONMOUNT   STORAGECAPACITY   TOKENREQUESTS   REQUIRESREPUBLISH   MODES        AGE
+ebs.csi.aws.com   true             false            false             <unset>         false               Persistent   58m
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl -n kube-system get pods -l app=ebs-csi-controller
+NAME                                  READY   STATUS    RESTARTS   AGE
+ebs-csi-controller-567f558465-27w67   6/6     Running   0          59m
+ebs-csi-controller-567f558465-kqdc4   6/6     Running   0          59m
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ CSI_CTLR=$(kubectl -n kube-system get pods -l app=ebs-csi-controller -o jsonpath='{.items[0].metadata.name}')
+kubectl -n kube-system logs "$CSI_CTLR" --tail=200
+
+Defaulted container "ebs-plugin" out of: ebs-plugin, csi-provisioner, csi-attacher, csi-snapshotter, csi-resizer, liveness-probe
+I1018 10:37:17.171113       1 main.go:154] "Initializing metadata"
+I1018 10:37:17.171219       1 metadata.go:66] "Attempting to retrieve instance metadata from IMDS"
+I1018 10:37:20.688492       1 metadata.go:69] "Retrieved metadata from IMDS"
+I1018 10:37:20.689487       1 envvar.go:172] "Feature gate default state" feature="InOrderInformers" enabled=true
+I1018 10:37:20.689515       1 envvar.go:172] "Feature gate default state" feature="InformerResourceVersion" enabled=false
+I1018 10:37:20.689524       1 envvar.go:172] "Feature gate default state" feature="WatchListClient" enabled=false
+I1018 10:37:20.689530       1 envvar.go:172] "Feature gate default state" feature="ClientsAllowCBOR" enabled=false
+I1018 10:37:20.689536       1 envvar.go:172] "Feature gate default state" feature="ClientsPreferCBOR" enabled=false
+I1018 10:37:20.690179       1 driver.go:72] "Driver Information" Driver="ebs.csi.aws.com" Version="v1.50.1"
+```
+
+Create resources to test dynamic provisioning:
+```bash
+kubectl apply -f clusters/aws/tests/ebs-csi-validate.yaml
+# Wait bind + pod success
+kubectl -n ebs-check get pvc data -w
+kubectl -n ebs-check logs -f pod/writer
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl -n ebs-check get pvc data
+kubectl -n ebs-check logs -f pod/writer
+
+NAME   STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+data   Bound    pvc-bd2ee68f-91f2-4bf8-8d98-8f2ef4699850   4Gi        RWO            ebs-gp3        <unset>                 6m31s
++ date '+%s'
++ echo hello-from-ebs-1760787463
++ cat /data/hello.txt
+hello-from-ebs-1760787463
++ sleep 5
+```
+
+If the PVC status is `Bound` and logs print the `hello-from-ebs-...` line then the EBS CSI Driver is working properly 👍.
+
+### 3) Calico (CNI & NetworkPolicy)
+
+```bash
+kubectl -n kube-system get ds,deploy | egrep -i 'calico' || true
+kubectl get nodes -o custom-columns=NAME:.metadata.name,PODCIDR:.spec.podCIDR
+kubectl get ippools.crd.projectcalico.org -o wide || true
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl -n kube-system get ds,deploy | egrep -i 'calico' || true
+kubectl get nodes -o custom-columns=NAME:.metadata.name,PODCIDR:.spec.podCIDR
+kubectl get ippools.crd.projectcalico.org -o wide || true
+daemonset.apps/calico-node                    2         2         2       2            2           kubernetes.io/os=linux                   76m
+deployment.apps/calico-kube-controllers   1/1     1            1           76m
+NAME                             PODCIDR
+ip-192-168-28-111.ec2.internal   10.244.0.0/24
+ip-192-168-30-212.ec2.internal   10.244.1.0/24
+NAME                  AGE
+default-ipv4-ippool   76m
+```
+
+If the Calico daemonset and deployment are running, nodes have PodCIDR assigned, and the default IP pool exists then Calico is working properly 👍.
+
+## Cleanup the resources
+Now that you've successfully created and validated an AWS workload cluster using Cluster API, you can proceed to deploy your applications or further customize the cluster as needed 🚀☸️
+
+When you're done, don't forget to clean up the resources to avoid unnecessary costs:
+```bash
+kubectl delete cluster h10h-aws-cluster
 ```

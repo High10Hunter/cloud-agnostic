@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Namespace
+metadata: { name: ccm-check }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: ccm-check
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: web } }
+  template:
+    metadata: { labels: { app: web } }
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.25
+          ports: [{ containerPort: 80 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-lb
+  namespace: ccm-check
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  selector: { app: web }
+# Wait until EXTERNAL-IP/hostname is allocated
+# kubectl -n ccm-check get svc web-lb -w
+

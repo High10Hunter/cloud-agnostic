@@ -186,6 +186,7 @@ data:
     subjects:
       - kind: ServiceAccount
         name: ebs-csi-controller-sa
+        namespace: kube-system
     roleRef:
       kind: ClusterRole
       name: ebs-external-attacher-role
@@ -201,6 +202,7 @@ data:
     subjects:
       - kind: ServiceAccount
         name: ebs-csi-node-sa
+        namespace: kube-system
     roleRef:
       kind: ClusterRole
       name: ebs-csi-node-role
@@ -216,6 +218,7 @@ data:
     subjects:
       - kind: ServiceAccount
         name: ebs-csi-controller-sa
+        namespace: kube-system
     roleRef:
       kind: ClusterRole
       name: ebs-external-provisioner-role
@@ -231,6 +234,7 @@ data:
     subjects:
       - kind: ServiceAccount
         name: ebs-csi-controller-sa
+        namespace: kube-system
     roleRef:
       kind: ClusterRole
       name: ebs-external-resizer-role
@@ -246,6 +250,7 @@ data:
     subjects:
       - kind: ServiceAccount
         name: ebs-csi-controller-sa
+        namespace: kube-system
     roleRef:
       kind: ClusterRole
       name: ebs-external-snapshotter-role
@@ -257,6 +262,7 @@ data:
     apiVersion: apps/v1
     metadata:
       name: ebs-csi-controller
+      namespace: kube-system
       labels:
         app.kubernetes.io/name: aws-ebs-csi-driver
     spec:
@@ -551,7 +557,7 @@ data:
     spec:
       attachRequired: true
       podInfoOnMount: false
-      nodeAllocatableUpdatePeriodSeconds: 10
+      # nodeAllocatableUpdatePeriodSeconds: 10
       fsGroupPolicy: File
     ---
     # Source: aws-ebs-csi-driver/templates/node.yaml
@@ -561,6 +567,7 @@ data:
       name: ebs-csi-node
       labels:
         app.kubernetes.io/name: aws-ebs-csi-driver
+      namespace: kube-system
     spec:
       revisionHistoryLimit: 10
       selector:
@@ -750,6 +757,7 @@ data:
       name: ebs-csi-controller
       labels:
         app.kubernetes.io/name: aws-ebs-csi-driver
+      namespace: kube-system
     spec:
       selector:
         matchLabels:
@@ -762,6 +770,7 @@ data:
     apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: ebs-csi-leases-role
+      namespace: kube-system
       labels:
         app.kubernetes.io/name: aws-ebs-csi-driver
     rules:
@@ -774,11 +783,13 @@ data:
     apiVersion: rbac.authorization.k8s.io/v1
     metadata:
       name: ebs-csi-leases-rolebinding
+      namespace: kube-system
       labels:
         app.kubernetes.io/name: aws-ebs-csi-driver
     subjects:
       - kind: ServiceAccount
         name: ebs-csi-controller-sa
+        namespace: kube-system
     roleRef:
       kind: Role
       name: ebs-csi-leases-role
@@ -791,6 +802,7 @@ data:
       name: ebs-csi-controller-sa
       labels:
         app.kubernetes.io/name: aws-ebs-csi-driver
+      namespace: kube-system
     automountServiceAccountToken: true
     ---
     # Source: aws-ebs-csi-driver/templates/serviceaccount-csi-node.yaml
@@ -800,4 +812,5 @@ data:
       name: ebs-csi-node-sa
       labels:
         app.kubernetes.io/name: aws-ebs-csi-driver
+      namespace: kube-system
     automountServiceAccountToken: true

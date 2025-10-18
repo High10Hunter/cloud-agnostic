@@ -7,7 +7,7 @@ CALICO_VERSION="v3.28.0"
 CALICO_FILE="bootstrap/calico.yaml"
 
 # Make sure POD_CIDR is set (default to 192.168.0.0/16 if not provided)
-: "${POD_CIDR:=192.168.0.0/16}"
+: "${POD_CIDR:=10.244.0.0/16}"
 
 # Fetch Calico manifest
 curl -fsSL -o "${CALICO_FILE}" \

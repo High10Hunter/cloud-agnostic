@@ -218,7 +218,6 @@ spec:
       controlPlaneLoadBalancer:
         loadBalancerType: nlb
         healthCheckProtocol: TCP
-      # region + sshKeyName patched by ClusterClass
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate

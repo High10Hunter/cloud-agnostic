@@ -1,0 +1,51 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata: { name: ebs-gp3 }
+provisioner: ebs.csi.aws.com
+allowVolumeExpansion: true
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  type: gp3
+---
+apiVersion: v1
+kind: Namespace
+metadata: { name: ebs-check }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  namespace: ebs-check
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ebs-gp3
+  resources:
+    requests: { storage: 4Gi }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writer
+  namespace: ebs-check
+spec:
+  restartPolicy: Never
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          set -eux
+          echo "hello-from-ebs-$(date +%s)" > /data/hello.txt
+          cat /data/hello.txt
+          sleep 5
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: data
+# Wait bind + pod success
+# kubectl -n ebs-check get pvc data -w &
+# kubectl -n ebs-check logs -f pod/writer
