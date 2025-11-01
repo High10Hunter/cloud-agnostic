@@ -45,6 +45,10 @@ spec:
         value: t3.medium
       - name: workerMachineType
         value: t3.medium
+      - name: rootVolume
+        value:
+          size: 40 # GiB
+          type: gp3 # gp3, gp2, io1, io2, standard
       - name: amiID
         # Command to find AMI: clusterawsadm ami list --os=ubuntu-22.04 --region=us-west-2
         # Ref: https://cluster-api-aws.sigs.k8s.io/clusterawsadm/clusterawsadm_ami_list
