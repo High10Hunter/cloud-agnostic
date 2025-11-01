@@ -148,7 +148,7 @@ Cluster/h10h-aws-cluster                                     0/2       0        
 └─ControlPlane - KubeadmControlPlane/h10h-aws-cluster-ltlpn  0/1       0          0      0 
 ```
 
-You can watch the bootrapping process by viewing the logs of the `capa-controller-manager` pod:
+You can watch the bootstrapping process by viewing the logs of the `capa-controller-manager` pod:
 ```bash
 [kind-capi-bootstrap|default] ➜  cloud-agnostic git:(main) ✗ kubectl get po -n capa-system
 NAME                                       READY   STATUS    RESTARTS   AGE
