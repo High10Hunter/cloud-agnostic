@@ -177,3 +177,13 @@ h10h-byoai-cluster   aws-quick-start   True        1            1              1
 ```
 
 ### 2) Use GitOps to manage BYOAI workload cluster with Argo CD
+Create a new workload cluster using existing AWS infrastructure (VPC, subnets, NAT Gateway, ...). You can modify the values of vpc, subnets, and other parameters in the `gitops/manifests/clusters/capa-byoai/capa-byoai.yaml` file as per your existing setup.
+```bash
+# Use the self-hosted cluster context
+kubie ctx h10h-aws-cluster-admin@h10h-aws-cluster
+
+# Apply the workload cluster manifest using existing cloud infrastructure
+kubectl apply -f gitops/cluster-app/capa-byoai-app.yaml 
+```
+
+The cluster creation status can be monitored directly from the Argo CD UI under the "Applications" section.

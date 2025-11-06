@@ -10,7 +10,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/High10Hunter/cloud-agnostic.git
-    path: gitops/manifest/clusters/capa-byoai
+    path: gitops/manifests/clusters/capa-byoai
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
