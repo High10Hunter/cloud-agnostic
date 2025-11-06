@@ -186,4 +186,59 @@ kubie ctx h10h-aws-cluster-admin@h10h-aws-cluster
 kubectl apply -f gitops/cluster-app/capa-byoai-app.yaml 
 ```
 
-The cluster creation status can be monitored directly from the Argo CD UI under the "Applications" section.
+The cluster creation status can be checked like in the creation via YAML manifest section above.
+
+## Add remote BYOAI workload cluster to Argo CD
+Use the Argo CD CLI to add the BYOAI workload cluster to Argo CD:
+```bash
+# Authenticate Argo CD CLI
+argocd login --insecure --grpc-web --username admin --password=123456Abc# argocd.high10hunter.live
+
+# Add remote BYOAI workload cluster to Argo CD
+argocd cluster add h10h-byoai-cluster-admin@h10h-byoai-cluster --yes --kubeconfig ~/.kube/h10h-byoai-cluster.kubeconfig --name capa-byoai
+
+# List clusters managed by Argo CD
+argocd cluster list
+```
+
+Output:
+```bash
+{"level":"info","msg":"ServiceAccount \"argocd-manager\" created in namespace \"kube-system\"","time":"2025-11-07T05:50:59+07:00"}
+{"level":"info","msg":"ClusterRole \"argocd-manager-role\" created","time":"2025-11-07T05:50:59+07:00"}
+{"level":"info","msg":"ClusterRoleBinding \"argocd-manager-role-binding\" created","time":"2025-11-07T05:50:59+07:00"}
+{"level":"info","msg":"Created bearer token secret \"argocd-manager-long-lived-token\" for ServiceAccount \"argocd-manager\"","time":"2025-11-07T05:50:59+07:00"}
+Cluster 'https://h10h-byoai-apiserver-lb-c7108670128e571a.elb.us-west-2.amazonaws.com:6443' added
+
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ argocd cluster list
+SERVER                                                                             NAME        VERSION  STATUS      MESSAGE                                                  PROJECT
+https://h10h-byoai-apiserver-lb-c7108670128e571a.elb.us-west-2.amazonaws.com:6443  capa-byoai           Unknown     Cluster has no applications and is not being monitored.
+https://kubernetes.default.svc                                                     in-cluster  1.32     Successful
+```
+
+## Deploy applications to BYOAI workload cluster using Argo CD
+```bash
+# Use the self-hosted cluster context
+kubie ctx h10h-aws-cluster-admin@h10h-aws-cluster
+
+# Apply the workload cluster manifest using existing cloud infrastructure
+kubectl apply -f gitops/sample-apps/appset.yaml 
+
+# Check application status 
+kubectl get applications -n argocd
+```
+
+Output:
+```bash
+[h10h-aws-cluster-admin@h10h-aws-cluster|default] ➜  cloud-agnostic git:(main) ✗ kubectl get application -A
+NAMESPACE   NAME              SYNC STATUS   HEALTH STATUS
+argocd      capa-byoai        Synced        Healthy
+argocd      simple-go-dev     Synced        Healthy
+argocd      simple-go-prod    Synced        Healthy
+argocd      simple-go-stage   Synced        Healthy
+```
+
+## Clean up 
+Remove the BYOAI workload cluster from Argo CD:
+```bash
+argocd cluster rm capa-byoai --yes
+```
