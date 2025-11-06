@@ -14,13 +14,12 @@ spec:
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
+    namespace: default # reuse the configmap of the self-hosted cluster
   syncPolicy:
     automated:
-      prune: true
-      selfHeal: true
-      allowEmpty: false
+      allowEmpty: true
     syncOptions:
       - Validate=true
-      - CreateNamespace=false
+      - CreateNamespace=true
       - PrunePropagationPolicy=foreground
       - PruneLast=true
