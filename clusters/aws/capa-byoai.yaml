@@ -1,4 +1,5 @@
-#INFO: This manifest create a quick start K8s cluster with 1 master node and 2 work nodes using Kubeadm on EC2 platform
+#INFO: This manifest create a bring-your-own-AWS-infrastructure cluster where we can reuse the existing AWS resources while creating AWS Clusters which gives flexibility bring our own existing resources into the cluster instead of creating new resources again
+#REF: https://cluster-api-aws.sigs.k8s.io/topics/bring-your-own-aws-infrastructure
 
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
@@ -7,7 +8,7 @@ metadata:
     cni: calico
     ccm: external
     csi: external
-  name: h10h-aws-cluster #NOTE: change the cluster name based on your preference
+  name: h10h-byoai-cluster #NOTE: change the cluster name based on your preference
 spec:
   clusterNetwork:
     pods:
@@ -23,26 +24,24 @@ spec:
         value: us-west-2
       - name: vpc
         value:
-          cidrBlock: "192.168.0.0/16" #WARN: Must not overlap with the pods CIDR block
-          availabilityZoneUsageLimit: 1
+          id: vpc-010deb11e3a12cd03 #NOTE: replace with your existing VPC ID
       - name: subnets
         value:
-          - id: "subnet-public-h10h"
-            cidrBlock: "192.168.0.0/20"
-            availabilityZone: "us-west-2a"
-            isPublic: true
-          - id: "subnet-private-h10h"
-            cidrBlock: "192.168.16.0/20"
-            availabilityZone: "us-west-2a"
-            isPublic: false
+          #NOTE: replace with your existing subnet IDs
+          - id: "subnet-0e201f70ee2a1084b"
+          - id: "subnet-0139794a6b43308a7"
       - name: securityGroupOverrides
-        value: {}
+        value:
+          #NOTE: replace with your existing SG IDs
+          control-plane: sg-01d128b4b1d4965dd
+          node: sg-0fad75ce7b081f3b7
+          lb: sg-0a5f4528e4a1203b7
       - name: controlPlaneLoadBalancer
         value:
           loadBalancerType: nlb
           scheme: internet-facing
           healthCheckProtocol: TCP
-          name: h10h-quickstart-apiserver-lb
+          name: h10h-byoai-apiserver-lb
         #WARN: Remember to create key pair first
       - name: sshKeyName
         value: capa-rsa-key-pair #NOTE: change the key pair name based on your preference

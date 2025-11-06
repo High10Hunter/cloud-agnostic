@@ -1,5 +1,5 @@
 # Convert Workload to Self-Hosted Cluster
-**Before starting this section ensure you've completed all below sections: ** 
+**Before starting this lab ensure you've completed all below sections: ** 
 - [Prerequisites](./0-prerequisites.md).
 - [Bootstrap AWS cluster](./1-bootstrap-aws-cluster.md).
 

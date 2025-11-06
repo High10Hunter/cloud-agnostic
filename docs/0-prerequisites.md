@@ -10,3 +10,6 @@ Please ensure you have at least: 4 CPU, 16 GB RAM and 32 GB free disk space to p
 - kubectl
 - clusterctl
 - clusterawsadm
+- argocd CLI
+- helm
+- kustomize

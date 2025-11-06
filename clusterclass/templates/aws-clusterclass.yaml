@@ -56,11 +56,14 @@ spec:
       schema:
         openAPIV3Schema: { type: string, default: us-east-1 }
     - name: vpc
-      required: true
+      required: false
       schema:
         openAPIV3Schema:
           type: object
           properties:
+            id:
+              type: string
+              description: "Optional existing VPC ID (e.g. vpc-0123456789abcdef0)"
             cidrBlock:
               type: string
               default: "192.168.0.0/16"
@@ -68,17 +71,12 @@ spec:
               type: integer
               default: 1
     - name: subnets
-      required: true
+      required: false
       schema:
         openAPIV3Schema:
           type: array
           items:
             type: object
-            required:
-              - id
-              - cidrBlock
-              - availabilityZone
-              - isPublic
             properties:
               id:
                 type: string
@@ -88,6 +86,17 @@ spec:
                 type: string
               isPublic:
                 type: boolean
+    - name: securityGroupOverrides
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          additionalProperties:
+            type: string
+          description: |
+            Optional map of CAPA security group roles to existing SG IDs.
+            Keys: control-plane, node, apiserver-lb, bastion (optional).
+
     - name: controlPlaneLoadBalancer
       required: false
       schema:
@@ -106,6 +115,9 @@ spec:
               type: string
               enum: ["TCP", "UDP", "HTTP", "HTTPS", "TLS"]
               default: "TCP"
+            name:
+              type: string
+              description: "Optional name for control-plane NLB"
     - name: sshKeyName
       required: true
       schema:
@@ -164,6 +176,10 @@ spec:
               path: /spec/template/spec/network/subnets
               valueFrom:
                 variable: subnets
+            - op: add
+              path: /spec/template/spec/network/securityGroupOverrides
+              valueFrom:
+                variable: securityGroupOverrides
     - name: controlPlaneLoadBalancer
       definitions:
         - selector:

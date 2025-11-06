@@ -1,0 +1,38 @@
+controller:
+  kind: DaemonSet # run one ingress controller per node
+  daemonset:
+    useHostPort: false # keep using Service NodePorts behind the NLB
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxUnavailable: 1 # tune if you need faster/slower rollouts
+
+  service:
+    type: LoadBalancer
+    externalTrafficPolicy: Local # keep the real IP of client that requests
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+      service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "TCP"
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "traffic-port"
+
+  ingressClassResource:
+    name: external-nginx
+  ingressClass: external-nginx
+
+  config:
+    use-proxy-protocol: "false"
+    use-forwarded-headers: "true"
+    proxy-real-ip-cidr: "192.168.0.0/16" # your VPC CIDR
+
+  # Keep pods resident and avoid evictions
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+      ephemeral-storage: "1Gi"
+    limits:
+      cpu: 1
+      memory: 1Gi
+      ephemeral-storage: "4Gi"
