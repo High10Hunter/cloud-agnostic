@@ -1,6 +1,8 @@
 # Kubernetes Cloud Agnostic Journey ☸️☁️
 This repo contains a series of labs designed to help you build and manage Kubernetes clusters in a cloud-agnostic manner. The labs will guide you through setting up Kubernetes clusters on different cloud providers, managing workloads, and ensuring portability across environments.
 
+Follow the journey here: [Kubernetes Cloud Agnostic Journey](https://high10hunter.substack.com/p/getting-started-with-kubernetes-cloud)
+
 ## Lab documentations
 Refer to the following lab documents for detailed steps and instructions:
 - [0. Prequisites](./docs/0-prerequisites.md)

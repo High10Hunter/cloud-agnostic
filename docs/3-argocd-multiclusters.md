@@ -192,7 +192,7 @@ kubectl apply -f gitops/cluster-app/platform-addons.yaml
 kubectl apply -f gitops/cluster-app/capa-byoai-app.yaml 
 ```
 
-The cluster creation status can be checked like in the creation via YAML manifest section above.
+The cluster creation status can be checked the same way in YAML manifest section above.
 
 ## Add remote BYOAI workload cluster to Argo CD
 Use the Argo CD CLI to add the BYOAI workload cluster to Argo CD:
