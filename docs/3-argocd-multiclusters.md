@@ -10,7 +10,7 @@ This lab assumes you have a self-hosted Kubernetes cluster running on a cloud pr
 Install these following Helm charts on your self-hosted cluster using `helm-init.sh` script:
 - Argo CD
 - Ingress NGINX Controller
-- Cert Manager (Already installed in previous steps)
+- Cert Manager (Already installed when provisioning cluster)
 
 ```bash
 cd gitops/bootstrap
