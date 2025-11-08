@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-addons
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/High10Hunter/cloud-agnostic.git
+    path: gitops/manifests/platform-addons
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: false # prevents accidental prune on full-app sync
