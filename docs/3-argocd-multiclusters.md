@@ -122,6 +122,9 @@ Create a new workload cluster using existing AWS infrastructure (VPC, subnets, N
 # Use the self-hosted cluster context
 kubie ctx h10h-aws-cluster-admin@h10h-aws-cluster
 
+# Apply the configmaps so that the BYOAI workload cluster can use them with ClusterResourceSet
+kubectl apply -f clusters/aws/confimaps 
+
 # Apply the workload cluster manifest using existing cloud infrastructure
 kubectl apply -f clusters/aws/capa-byoai.yaml
 ```
@@ -181,6 +184,9 @@ Create a new workload cluster using existing AWS infrastructure (VPC, subnets, N
 ```bash
 # Use the self-hosted cluster context
 kubie ctx h10h-aws-cluster-admin@h10h-aws-cluster
+
+# Apply the configmaps as platform addons so that the BYOAI workload cluster can use them with ClusterResourceSet
+kubectl apply -f gitops/cluster-app/platform-addons.yaml
 
 # Apply the workload cluster manifest using existing cloud infrastructure
 kubectl apply -f gitops/cluster-app/capa-byoai-app.yaml 

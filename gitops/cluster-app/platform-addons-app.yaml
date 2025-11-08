@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/High10Hunter/cloud-agnostic.git
-    path: gitops/manifests/platform-addons
+    path: gitops/manifests/clusters/platform-addons
     targetRevision: main
   destination:
     server: https://kubernetes.default.svc
