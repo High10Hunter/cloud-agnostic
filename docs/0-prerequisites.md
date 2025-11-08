@@ -13,3 +13,6 @@ Please ensure you have at least: 4 CPU, 16 GB RAM and 32 GB free disk space to p
 - argocd CLI
 - helm
 - kustomize
+
+## Kubernetes Cluster context setup
+The tool we've choosen to manage multiple Kubernetes contexts is [kubie](https://github.com/sbstp/kubie). Update kubie configuration file like [this](https://github.com/High10Hunter/dotfiles/blob/main/kubie/.kube/kubie.yaml). This `kubie.yaml` file will be located at `~/.kube/kubie.yaml`.
